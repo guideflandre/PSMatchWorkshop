@@ -9,7 +9,6 @@ home:
   title: "PSMatchWorkshop"
   type: inverse
 
-
 navbar:
   right:
    - icon: fa-github
