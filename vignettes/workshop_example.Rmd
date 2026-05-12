@@ -22,7 +22,6 @@ Authors:
     Author Name^[Institution],
     Another Author^[Another Institution].
     <br/>
-Last modified: 14 May, 2018.
 
 ## Overview
 
