@@ -24,7 +24,7 @@ Depends:
 Suggests: 
     knitr,
     rmarkdown,
-    pkgdown
+    pkgdown,
     utils,
     stats,
     igraph,
