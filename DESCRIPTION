@@ -1,28 +1,43 @@
-Package: BuildABiocWorkshop
-Title: Bioconductor or R Workshop Template and Github Actions
-Version: 2.0.1
+Package: PSMatchWorkshop
+Title: A package for building a workshop on Bioconductor package PSMatch.
+Version: 1.0.0
 Authors@R: 
-    person(given = "Sean",
-           family = "Davis",
+    person(given = "Guillaume",
+           family = "Deflandre",
            role = c("aut", "cre"),
-           email = "seandavi@gmail.com",
-           comment = c(ORCID = "0000-0002-8991-6458"))
-Description: This package serves as a template for using github actions to 
-    prepare a Bioconductor Workshop package for use. In particular,
+           email = "guillaume.deflandre@uclouvain.be",
+           comment = c(ORCID = "0009-0008-1257-2416"))
+Description: This package uses github actions to 
+    prepare a Bioconductor Workshop package for PSMatch. In particular,
     a pkgdown website and docker image are generated based on workflow 
     settings. 
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.0
 Depends: 
-    Biobase
+    Biobase,
+    S4Vectors,
+    R (>= 4.1.0),
+    PSMatch (>= 1.15.3),
+    PTMods (>= 0.99.3)
 Suggests: 
     knitr,
     rmarkdown,
     pkgdown
-URL: https://seandavi.github.io/BuildABiocWorkshop/
-BugReports: https://github.com/seandavi/BuildABiocWorkshop/issues/new/choose
+    utils,
+    stats,
+    igraph,
+    methods,
+    Spectra (>= 1.17.10),
+    Matrix,
+    BiocParallel,
+    BiocGenerics,
+    ProtGenerics (>= 1.27.1),
+    QFeatures,
+    MsCoreUtils
+URL: https://guideflandre.github.io/PSMatchWorkshop/
+BugReports: https://github.com/guideflandre/PSMatchWorkshop/issues/new/choose
 VignetteBuilder: knitr
-DockerImage: ghcr.io/seandavi/buildabiocworkshop:latest
+DockerImage: ghcr.io/guillaumedeflandre/psmatchworkshop:latest
+Config/roxygen2/version: 8.0.0
