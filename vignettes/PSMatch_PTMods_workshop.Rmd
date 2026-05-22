@@ -1,0 +1,830 @@
+---
+title: "Workshop on PSMatch - a package to handle identifications data."
+author: "Guillaume Deflandre"
+output:
+    BiocStyle::html_document:
+        toc_float: true
+        toc_depth: 3
+vignette: >
+    %\VignetteIndexEntry{PSMatch Workshop}
+    %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteEncoding{UTF-8}
+    %\VignettePackage{PSMatchWorkshop}
+    %\VignetteDepends{PSMatch,PTMods,Spectra,MsDataHub,BiocStyle,mzR,TargetDecoy}
+---
+
+```{r style, echo = FALSE, results = 'asis', message = FALSE}
+BiocStyle::markdown()
+```
+**Authors**: `r packageDescription("PSMatch")[["Author"]] `<br />
+
+<img src="../images/PSMatch.png" width="300"/>
+
+## Overview {-}
+
+### Description {-}
+
+This workshop introduces you to the `r Biocpkg("PSMatch")` R and Bioconductor
+package. As you will see, the package also depends on another Bioconductor
+package called `r Biocpkg("PTMods")` and we also highly suggest using the 
+`r Biocpkg("Spectra")` package for plotting spectra. All three packages are part
+of the [R for Mass Spectrometry](https://www.rformassspectrometry.org/) package
+series and you are welcome to learn more about this project by visiting its
+corresponding website.
+
+In short, `PSMatch` is a Bioconductor package for handling proteomics
+identification data whilst `PTMods` handles post-translational modifications
+(PTMs). You are encouraged to run the code interactively as I will present each
+section.
+
+By the end of this workshop, you will be able to import, explore, filter, and
+visualise peptide-spectrum match (PSM) data; model peptide-protein
+relationships using adjacency matrices; and handle PTM annotations in a
+principled, reproducible manner.
+
+### Pre-requisites {-}
+
+- A conceptual understanding of shotgun proteomics: what a peptide
+  is, what a mass spectrum is, and what a database search does. 
+
+### Suggested readings {-}
+
+- The `r Biocpkg("PSMatch")` package vignettes, accessible via
+`browseVignettes("PSMatch")`. 
+- The pre-print available on the OSF platform:
+[PSMatch: an R/Bioconductor package to explore proteomics identification
+data.](https://doi.org/10.31219/osf.io/62v9p_v3). Note that the package has
+gone through quite a few changes since.
+
+### Participation {-}
+
+As I already mentioned, you are welcome to follow along with me. Code is
+provided in full, no typing from scratch is required. The code can be fetched
+from [this GitHub repo](https://github.com/guideflandre/PSMatchWorkshop).
+
+### Workshop goals {-}
+
+- Understand the structure of peptide-spectrum match data and how it is
+  represented in R using the `PSM` class.
+- Recognise the problem of shared peptides and protein ambiguity, and
+  know how adjacency matrices and connected components help address it.
+- Appreciate the diversity of PTM annotation conventions and know how
+  to convert between them and enumerate modified sequences.
+- Understand the sometimes lacking confidence in identifications and as such,
+  the importance of validating PSMs.
+
+### Learning objectives {-}
+
+- Import an identification data file into R and inspect the resulting `PSM`
+  object.
+- Apply the standard filtering steps (decoy removal, rank filtering,
+  shared-peptide filtering, fdr filtering) individually and via `filterPSMs()`.
+- Build an adjacency matrix and connected components from PSM data
+  and visualise a protein group as a bipartite graph.
+- Convert a PTM annotation between *deltaMass*, *unimodId*, and *name*
+  formats using `convertAnnotation()`.
+- Apply fixed and variable modifications to a peptide sequence and
+  calculate theoretical fragment ions that account for those
+  modifications.
+- Plot spectra by including annotations based on the identification.
+- Improve the confidence in a PSM using `validatePSM()`, built based
+  on spectral and identification metrics.
+
+
+# Who is the package for and when to use it ? {-}
+
+The package is built for proteomics practitioners who want to explore their
+identification data or peptide-spectrum matches.
+
+<img src="../images/workflow.png" width="600"/>
+
+In mass spectrometry-based proteomics, after generation of raw spectra, you
+would typically apply a database search or _de novo_ sequencing to identify
+which peptide could have been at the origin of each MS2 spectrum. The
+identifications, or so-called Peptide-Spectrum Matches (PSMs) are the results
+of this search.
+
+<img src="../images/dbSearch.png" width="600"/>
+
+`PSMatch` is the package you reach for once a search engine has matched your
+spectra to peptide sequences and you want to explore, filter, and annotate
+those identifications. Note that different search engines will generate
+different file types and identifications. Still, a few file contents remain a
+standard amongst search engines: 
+
+1. The **peptide** or sequence matched
+2. The **rank** of the PSM for a same spectrum
+3. The data **origin**
+4. The scan number or **spectrum identifier**
+5. The **associated proteins** for that PSM
+6. Its search engine **score**
+7. The **FDR** associated to that PSM based on its given score.
+
+# Loading and exploring PSM data {-}
+
+## Installing and loading the package {-}
+
+The packages used in this workshop are all available from Bioconductor.
+`PSMatch` and `PTMods` are constantly being improved and some functionalities
+that are presented in this workshop are not yet available through the latest
+Bioconductor release versions (1.16.0 and 1.0.0 respectively). 
+
+To install the correct versions for this workshop, use:
+
+```{r installVlatest, eval = FALSE}
+remotes::install_github(c("rformassspectrometry/PSMatch@validatePSM", 
+                       "rformassspectrometry/PTMods"), build_vignettes = TRUE)
+```
+
+For the other packages, the usual install can be used:
+
+```{r install, eval = FALSE}
+if (!require("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+BiocManager::install(c("PSMatch", "PTMods", "Spectra", "MsDataHub",
+    "TargetDecoy"))
+```
+
+```{r load, message = FALSE}
+library(PSMatch)
+library(PTMods)
+library(Spectra)
+library(TargetDecoy)
+```
+
+## Example data {-}
+
+In this workshop, we will use different data available through the 
+`r Biocpkg("MsDataHub")` package. 
+
+`psmBoekweg` and `spBoekweg` are subsets of the `Boekweg2022` data. The subsets
+are also bundled in the `PSMatch` package as of version `1.17.2`. For more
+information on the data, you can run `?MsDataHub::Boekweg2022`.
+
+We will also use an mzIdentML file from the `MsDataHub` package. This file
+contains search results from a TMT-labelled Erwinia carotovora sample acquired
+on an Orbitrap instrument.
+
+```{r datafile}
+## Load psmBoekweg, the identification file as a result from a database search
+data("psmBoekweg")
+```
+
+## The `PSM()` constructor {-}
+
+The `PSM` class is a lightweight extension of the `DFrame` class from 
+`r Biocpkg("S4Vectors")`: it is a tabular object where each row is one PSM. You
+can build a `PSM` object from a `data.frame` using the required column names by
+using the `PSM()` function.
+
+```{r psm-load}
+## Create a PSM/spectrum identifier
+head(psmBoekweg$pkey <- paste0(basename(psmBoekweg$filename),
+                               sub("^.+scan=", "::", psmBoekweg$scannr)))
+
+(
+    psms <- PSM(x = psmBoekweg,
+        spectrum = "pkey",
+        peptide = "peptide",
+        protein = "protein",
+        decoy = "label",
+        rank = "rank",
+        score = "hyperscore",
+        fdr = "spectrum_q")
+)
+```
+
+Calling the `PSM` object returns a quick overview of its contents. There are
+10000 rows or PSMs, with a total of 42 columns or features. All 10000 PSMs have
+a unique spectrum identifier and there are 1823 decoys in this dataset. The
+ranks for all PSMs are equal to 1.
+
+Note that a different dataset might not have decoys or different PSM ranks, it
+would then have multiple PSMs with a same spectrum identifier. For instance,
+the following mzid file from `MsDataHub`:
+
+```{r id-load}
+f <- MsDataHub::TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.20141210.mzid()
+(
+    id <- PSM(x = f,
+        spectrum = "spectrumID",
+        peptide = "sequence",
+        protein = "DatabaseAccess",
+        decoy = "isDecoy",
+        rank = "rank",
+        score = "MS.GF.RawScore",
+        fdr = "MS.GF.QValue")
+)
+```
+
+You can call or store the initially defined PSM variables using
+`psmVariables()`.
+
+```{r psm-explore}
+(psmVar <- psmVariables(psms)) ## defined PSM variables used in the package
+(idVar <- psmVariables(id)) 
+names(psms)
+```
+
+## Decoy and target hits {-}
+
+A typical database search should also provide decoy PSMs: the hits that provide
+an estimate of the false discovery rate (FDR). The data are loaded *as-is*,
+without any filtering. 
+
+We can filter out these decoys that don't hold any biological meaning other
+that helping to estimate the FDR:
+
+```{r psm-decoy}
+psms
+(psmsNoDecoys <- filterPsmDecoy(psms))
+```
+
+The `r Biocpkg("TargetDecoy")` package is a useful Bioconductor package to
+analyse the quality of the target-decoy distribution in your data. It provides
+functions to plot a histogram of the disctributions as well as a
+percentile-percentile plot, which measures when those distributions differ.
+
+Note, a typical dataset should have a bimodal distribution for the targets and
+a distribution for the decoys that fits the first peak of the targets'
+distribution well. High-confidence PSMs are those targets that distinguish
+themselves from the decoys through a higher search engine score. The more
+dubious target hits are those that dissociate themselves from the decoy
+distribution too early. See `browseVignettes("TargetDecoy")` for more
+information on the topic.
+
+```{r tdc}
+evalTargetDecoysHist(data.frame(psms),
+    decoy = "label", score = "sage_discriminant_score",
+    log10 = FALSE, nBins = 80
+)
+```
+
+## Multiple matches per spectrum {-}
+
+A search engine can return more than one candidate sequence for each spectrum.
+The table below shows that several spectra have up to 5 candidate matches for
+the TMT dataset.
+
+```{r psm-multi}
+table(table(id$spectrumID))
+```
+
+Let us inspect a concrete example: scan 1774 has 4 matches, all assigned to the
+same peptide sequence but to four different proteins.
+
+```{r psm-scan1774}
+i <- grep("scan=1774", id$spectrumID)
+data.frame(id)[i, c(idVar["spectrum"], "sequence", "DatabaseAccess", "rank")]
+```
+
+This is known as a *shared peptide*: a peptide whose sequence is present in
+more than one protein. We will come back to this in the adjacency matrix
+section.
+
+## Reducing to one row per spectrum {-}
+
+If you want to retain all matches but collapsed into one row per spectrum
+(storing multiple values as lists within each cell), use `reducePSMs()`.
+
+```{r psm-reduce, warning = FALSE}
+dim(id)
+idReduced <- reducePSMs(id, id$spectrumID)
+dim(idReduced)
+
+## Each spectrum now has exactly one row
+anyDuplicated(idReduced$spectrumID)
+
+## The multiple values are stored as lists in each cell
+j <- grep("scan=1774", idReduced$spectrumID)
+data.frame(idReduced)[j, "DatabaseAccess"]
+
+## You can check if a PSM object is reduced or not with `reduced()`
+reduced(idReduced)
+```
+
+# Filtering PSM data {-}
+
+`filterPsmDecoy()` was already mentioned, but there are 3 other handy filtering
+functions available in `PSMatch`:
+
+- `filterPsmRank()` that filters out PSMs whose rank is greater than 1.
+- `filterPsmShared()` that filters out peptides that match to more than one
+protein: the so-called shared peptides.
+- `filterPsmFdr()` that filters PSMs based on a specified FDR threshold. By
+default, the threshold is set at $5\%$.
+
+The convenient `filterPSMs()` wrapper applies all filters above except the
+`filterPsmFdr()`:
+
+```{r filters}
+id |> filterPSMs() 
+psms |> filterPsmFdr(FDR = 0.01)
+```
+
+# Protein ambiguity and adjacency matrices {-}
+
+The simple table representation of PSM data hides an important structure: the
+*relationship* between peptides and proteins. 
+
+## Describe peptides|proteins {-}
+
+For a more in depth understanding of the peptides and proteins in your data,
+you can call `describePeptides()` and `describeProteins()`. The message
+displayed in the console defines the peptide and protein compositions in terms
+of shared and unique peptides. 
+
+Out of the 10000 PSMs, 9254 are uniquely identified peptides, out of which 4021
+are uniquely linked to a protein. The rest are shared peptides, i.e. peptides
+that may stem from 2 or more proteins. 
+
+Out of 11727 proteins, 2254 have only 1 peptide linked to them. 9186 have
+shared peptides only and 287 have a mix of unique and shared peptides.
+
+```{r describe}
+describePeptides(psms)
+describeProteins(psms)
+```
+
+Two proteins that share a peptide are connected and PSMatch models this
+relationship using adjacency matrices and connected components.
+
+## Reload and filter {-}
+
+Let us start from a freshly loaded, filtered PSM table (keeping rank-1
+non-decoy hits but *not* removing shared peptides, so we can explore the
+sharing).
+
+```{r adj-load}
+psmsFiltered <- psms |> filterPsmDecoy() |> filterPsmRank()
+data.frame(psmsFiltered[1:10, psmVar[c("peptide", "protein")]])
+```
+
+## Building the adjacency matrix {-}
+
+Let's visualise the relationship between peptides and proteins as an adjacency
+matrix instead of within a table.
+
+An adjacency matrix has **peptides as rows** and **proteins as columns**. A
+value > 0 at position *(i, j)* means peptide *i* was observed for protein *j*.
+A binary matrix uses 1/0 whilst a weighted matrix uses the count of PSMs or its
+given search engine score. If a peptide was observed multiple times, the sum of
+scores is used. Because we defined the `"score"` variable when constructing the
+`PSM` object, the weighted matrix with summed scores is built by default.
+
+```{r adj-build}
+adj <- makeAdjacencyMatrix(psmsFiltered)
+dim(adj) ## peptides × proteins
+adj[1:5, 1:5]
+
+## Set score = NA for counts only and binary = TRUE for a binary matrix
+adj <- makeAdjacencyMatrix(psmsFiltered, score = NA)
+dim(adj)
+adj[1:5, 1:5]
+```
+
+Let's use the matrix with counts for now. Notice that the matrix is sparse:
+quite a few peptides map to only one protein as shown with
+`describePeptides()`. Some entries are > 1 because the same peptide sequence
+was observed multiple times (different charge states, modification sites, ...).
+
+## Connected components {-}
+
+The full adjacency matrix is too large to interpret directly. Instead, we
+decompose it into **connected components**: subsets of peptides and proteins
+that are connected to each other (directly or through shared peptides) but
+isolated from the rest of the matrix.
+
+```{r cc-build}
+cc <- ConnectedComponents(adj)
+cc
+length(cc)
+```
+
+We have many connected components. Let us look at what kinds exist.
+
+```{r cc-types}
+## Single protein, single peptide (simplest case)
+connectedComponents(cc, 2)
+
+## Single protein, multiple peptides (well-identified protein)
+connectedComponents(cc, 22)
+
+## Multiple proteins sharing a single peptide
+connectedComponents(cc, 1)
+
+## Multiple proteins, multiple peptides (most complex)
+connectedComponents(cc, 11)
+```
+
+For interesting cases where a group of proteins that are connected through
+shared peptides exist, we can visualise and understand the structure of these
+groups.
+
+## Visualising adjacency matrices {-}
+
+Let us find connected components with at least three peptides and three
+proteins.
+
+```{r cc-large}
+head(largeCC <- which(nrows(cc) > 2 & ncols(cc) > 2), 15)
+dims(cc[head(largeCC, 15)])
+```
+
+We will use component 1049 to illustrate `plotAdjacencyMatrix()`. Proteins are
+represented as blue squares, peptides as white circles. An edge connects a
+peptide to every protein it maps to.
+
+```{r adj-plot}
+cx <- connectedComponents(cc, 1049)
+cx
+plotAdjacencyMatrix(cx)
+```
+
+Immediately we can see that peptide `` is shared across all four
+proteins. If we removed that peptide, the component would split into smaller,
+simpler groups.
+
+## Prioritising components for inspection {-}
+
+When there are many complex connected components, we need a way to prioritise
+which to inspect first. `prioritiseConnectedComponents()` computes a set of
+metrics (including its dimensions, row and col sums maxima and minima, its
+sparsity and the number of communities and their modularity that quantifies how
+well the communities separate) for each component and ranks them.
+
+```{r cc-prioritise}
+cctab <- prioritiseConnectedComponents(cc)
+head(cctab, 15)
+```
+
+A principal component analysis of these metrics can reveal groups of
+similar components or outliers that deserve attention first. Note that
+trivial components are ignored.
+
+```{r cc-pca, message = FALSE}
+library("factoextra")
+fviz_pca(prcomp(cctab, scale = TRUE, center = TRUE))
+```
+
+# PTMods: handling modifications {-}
+
+Before continuing, I will briefly introduce the functions from the `PTMods`
+package that `PSMatch` is dependent on.
+
+## PTM annotation styles {-}
+
+As I already mentioned, different search engines and databases generate
+different PSM file formats. They also use different syntaxes for annotating
+modifications within a peptide sequence. `PTMods` handles all of them
+transparently. The three (currently supported) annotation styles are:
+
+```{r ptm-styles-table, echo = FALSE}
+ptmStyles <- data.frame(
+  Style=c("`deltaMass`", "`unimodId`", "`name`"),
+  Example=c("`M[+15.994915]PEPTIDE`", "`M[UNIMOD:35]PEPTIDE`", "`M[Oxidation]PEPTIDE`"),
+  Description=c("Mass shift in square brackets", "Unimod accession number", "Human-readable PTM name"),
+  SearchEngine=c("Sage", "(MSFragger)", "MaxQuant")
+)
+
+knitr::kable(ptmStyles, align="lll")
+```
+
+The `convertAnnotation()` function converts between these styles. The
+conversion is based on an up-to-date `data.frame` built from the
+[unimod.org](https://www.unimod.org/modifications_list.php?) website.
+
+```{r ptmods-convert}
+## Name → deltaMass
+convertAnnotation(
+    "M[Oxidation]PEPTIDE",
+    convertToStyle = "deltaMass"
+)
+
+## deltaMass → name
+convertAnnotation(
+    "M[+15.995]PEPTIDE",
+    convertToStyle = "name"
+)
+```
+
+## Adding modifications {-}
+
+Adding modifications can be done one of two ways: through
+`addFixedModifications()` or through `addVariableModifications`.
+
+### Fixed modifications {-}
+
+By default, carbamidomethylation is added as a fixed modification. Other PTMs
+can be added using the `fixedModifications` parameter which accepts a named
+vector. The annotation style is up to the user and can be changed later down
+the line using `convertAnnotation()`.
+
+```{r ptmods-fixed}
+addFixedModifications(
+    "SCALITDGR",
+    fixedModifications = c(C = "Carbamidomethyl")
+)
+```
+
+Fixed modifications can also target the N-terminus or C-terminus of a peptide,
+or a specific residue position.
+
+```{r ptmods-fixed-nterm}
+## TMT labelling of the N-terminus (mass 304.207 Da)
+addFixedModifications(
+    "SCALITDGR",
+    fixedModifications = c(Nterm = 304.207)
+)
+```
+
+```{r ptmods-fixed-pos}
+## Fluoro modification at position 1 only
+addFixedModifications(
+    "SCALITDGR",
+    fixedModifications = c("Fluoro"),
+    pos = 1
+)
+```
+
+### Variable modifications {-}
+
+`addVariableModifications()` returns *all* sequences that can be formed by
+placing the modification on zero, one, or more of the eligible residues.
+
+A sequence with 2 potential modification sites will thus generate 4
+peptidoforms.
+
+```{r ptmods-variable}
+addVariableModifications(
+    "MPEPTIDE",
+    variableModifications = c(M = -15.995, T = "Phospho")
+)
+```
+
+The number of sequences grows exponentially with the number of modifiable
+residues. The `maxMods` parameter caps the maximum number of simultaneous
+modifications.
+
+```{r ptmods-variable-maxmods}
+addVariableModifications(
+    "MPEPTIDE",
+    variableModifications = c(M = -15.995, T = "Phospho"),
+    maxMods = 1
+)
+```
+
+## Stripping modifications {-}
+
+`getCanonicalSequence()` removes all modifications and returns the bare amino
+acid sequence. This is useful for grouping modified and unmodified forms of the
+same peptide.
+
+```{r ptmods-canonical}
+getCanonicalSequence("[+304]-M[Oxidation]PEPT[UNIMOD:21]IDE")
+```
+
+# Fragment ions and spectrum visualisation {-}
+
+Fragment ions are the basis of MS2-based peptide identification. When a peptide
+is fragmented, backbone bonds break and produce a series of ions. For a peptide
+of length *n*, the b-ion series covers fragments from the N-terminus ($b1$ to
+$b_{n-1}$) and the y-ion series covers fragments from the C-terminus ($y1$ to
+$y_{n-1}$).
+
+PSMatch provides `calculateFragments()` to compute theoretical fragment masses,
+and `plotSpectraPTM()` to overlay them on the observed spectrum, essentially
+annotating the observed spectrum based on the provided sequence for that PSM.
+
+## Load raw and identification data {-}
+
+We merge raw spectra with identification results. The raw mzML file is also
+available from `MsDataHub`.
+
+```{r frag-load, message = FALSE}
+data("spBoekweg")
+
+head(spBoekweg$pkey <- paste0(basename(spBoekweg$dataOrigin),
+                              sub("^.+scan=", "::", spBoekweg$spectrumId)))
+
+## Merge by spectrum identifier
+sp <- joinSpectraData(spBoekweg, psms,
+    by.x = "pkey",
+    by.y = "pkey"
+)
+sp
+
+## Set 'sequence' variable equal to 'peptide' but with converted PTM notation
+sp$sequence <- convertAnnotation(sp$peptide, "name")
+```
+
+## Isolate a single PSM {-}
+
+We focus on scan 6570, which was matched to `r sp$sequence[27]`.
+
+```{r frag-select}
+sp6570 <- filterPrecursorScan(sp, 6570)
+## Both MS1 and MS2 spectra, only MS2 has an identification
+(sek <- sp6570$sequence) 
+```
+
+## Calculate theoretical fragment ions {-}
+
+`calculateFragments()` takes a peptide sequence and returns a `data.frame` with
+the m/z, ion type, charge, and position of every theoretical fragment. By
+default, carbamidomethylation of cysteines is applied automatically.
+
+```{r frag-calc}
+frags <- calculateFragments(
+    sek[2],
+    addCarbamidomethyl = FALSE
+)
+frags
+```
+
+The columns are:
+
+- **`mz`**: theoretical m/z of the fragment ion.
+- **`ion`**: ion label (e.g. `b3`, `y5`).
+- **`type`**: ion series (`b` or `y`, or `a`, `c`, `x`, `z`).
+- **`z`**: charge state.
+- **`pos`**: sequence of the fragment for that mass.
+- **`peptide`**: the precursor peptide sequence.
+
+## Fragment ions with PTM enumeration {-}
+
+Of course, `calculateFragments()` supports the same PTM annotation styles
+supported by `PTMods`. A typical workflow would include the addition of PTMs
+through the use of `addVariableModifications()` or `addFixedModifications`.
+Passing this vector of generated sequences to `calculateFragments()` then
+produces its own set of fragment ions, traceable by the `peptide` column.
+
+```{r frag-ptmods}
+(
+    varSeqs <- PTMods::addVariableModifications("ATK", 
+        variableModifications = c(T = "Phospho"))
+)
+
+calculateFragments(varSeqs, verbose = FALSE)
+```
+
+## Visualising the spectrum with `plotSpectraPTM()` {-}
+
+`plotSpectraPTM()` overlays the theoretical fragment ions on the observed MS2
+spectrum. It also draws a delta-mass plot (observed minus theoretical m/z
+values for each matched fragment) to assess matching quality, and a sequence
+coverage diagram showing which b- and y-ions were matched.
+
+```{r frag-plot-basic}
+plotSpectra(sp6570[2]) ## raw spectrum
+```
+
+```{r frag-plot-ptm}
+plotSpectraPTM(sp6570[2])
+```
+
+The figure has multiple sections:
+
+1. The top includes the Universal Spectrum Identifier (USI) and an optional
+   title as well as a direct visualisation of which b- and y-ions were matched
+   along the sequence.
+2. The main plot is the actual annotated spectrum. The fragment intensities are
+   displayed as relative intensities to the base peak. The base peaks can be
+   recognised as it is annotated with the raw intensity value. The matched
+   peaks can be coloured by the user, as well as other typical plotting 
+   parameters.
+3. An optional (but useful) plot is the `deltaMz` plot that shows the
+   difference between the observed and theoretical mass-over-charge values of
+   the matched peaks.
+
+Adjusting the `ppm` parameter helps fine-tune the accepted range for matching
+peaks. In any case, the closest peak to the theoretical m/z will be recorded
+only if it falls within this `ppm` range.
+
+In the following plot, increasing the `ppm` parameter to 150 made it match 2
+more fragments (the y3_ and b5 ions). However, such a high ppm does not
+encourage us to trust these matches.
+
+```{r frag-plot-ppm}
+plotSpectraPTM(sp6570[2], ppm = 150)
+```
+
+We can compare the match quality with and without Oxidation for that
+PSM to confirm that the modification is genuine.
+
+```{r frag-plot-compare}
+spComp <- sp6570[2]
+spComp$sequence <- getCanonicalSequence(spComp$sequence)
+plotSpectraPTM(spComp,
+    variableModifications = c(M = "Oxidation"),
+    deltaMz = FALSE,
+    asp = 2/1,
+    main = c(
+        "Scan 6570, no oxidation",
+        "Scan 6570, with oxidation"
+    )
+)
+```
+
+The spectrum with oxidation shows more matched fragments, confirming that the
+methionine indeed modified.
+
+The function becomes very useful for cases where an identification is not quite
+convincing. Plotting these different annotated spectra with and without PTMs,
+whilst checking the `deltaMz` plot helps validating a PSM.
+
+# Validate PSMs {-}
+
+Until now, we have handled data as they come out of a search engine. In this
+section, we will try to improve our confidence in a PSM based on spectral and
+identification metrics.
+
+Basic metrics are typically calculated and given by the search engines. Think
+about the number of matched fragments, the longest fragment matched, the score,
+the FDR, ...
+
+With `validatePSM()`, we can add some metrics that are not reported in any of
+the search engines we have used so far. The function is actually a wrapper for
+other functions that calculate these metrics. For more on those, see
+`?validatePSM`. 
+
+```{r validatePsms, warnings = FALSE}
+scans_seq <- precScanNum(sp[!is.na(sp[["sequence"]])])
+sp <- filterPrecursorScan(sp, scans_seq)
+
+(
+    res <- validatePSM(sp[1:20], 
+        peptideVariable = psmVar["peptide"], 
+        fdr = psmVar["fdr"])
+)
+```
+
+Some metrics need a modification to be relevant, others don't. In any case,
+these metrics can be added to the initial PSM object by matching their
+`spectrumId`.
+
+```{r addMetrics}
+psm_df <- as.data.frame(psms)
+combined <- merge(psm_df, res,
+    by.x = "scannr", by.y = "spectrumId",
+    all.x = FALSE
+)
+```
+
+An example of these metrics is `checkOverlap()`. This functions evaluates
+whether the matched b-ions and y-ions together cover the entire peptide
+sequence. If not, a gap is detected. `checkOverlap()` returns `FALSE` when such
+a gap is detected and `TRUE` when b- and y-ions jointly cover the sequence with
+overlap.
+
+```{r checkOverlap}
+sp_ms2 <- sp[msLevel(sp) == 2L & !is.na(sp$sequence)]
+
+checkOverlap(sp_ms2[10])
+plotSpectraPTM(sp_ms2[10])
+```
+
+In the example above, it `checkOverlap()` serves as a ringing bell that shows
+an alarming identification for which the amino acids within that identified gap
+have never been matched. It could be interesting to re-apply a search with
+variable modifications. For instance with phosphorylation on serine or
+oxidation on methionine. 
+
+For a more in depth use of these metrics, we suggest parsing through the
+corresponding vignette (see `vignette("validatePSM", package = "PSMatch")`).
+
+
+# Summary {-}
+
+With this, we have covered the main features of PSMatch (as well as PTMods):
+
+1. **Loading PSM data** : `PSM()` reads mzIdentML files or `data.frame`
+   instances into a tidy `DFrame`-based object with full access to all search
+   engine output.
+
+2. **Filtering** : `filterPsmDecoy()`, `filterPsmRank()`,
+   `filterPsmShared()`, and the convenience wrapper `filterPSMs()`.
+
+3. **Adjacency matrices and connected components** :
+   `makeAdjacencyMatrix()`, `ConnectedComponents()`,
+   `plotAdjacencyMatrix()`, and `prioritiseConnectedComponents()`
+   provide a principled framework for exploring protein ambiguity.
+
+4. **PTM handling** : PTMods gives access to the Unimod database and
+   provides `convertAnnotation()`, `addFixedModifications()` and
+   `addVariableModifications()` for
+   annotation conversion and modification addition
+
+5. **Fragment ions** : `calculateFragments()` computes theoretical
+   b/y (and other) ions whilst `plotSpectraPTM()` overlays them on observed
+   spectra with delta-mass diagnostics.
+
+6. **Validate PSMs** : `validatePSM()` uses different checks and metrics to
+   validate an identification.
+
+
+# Session Information {-}
+
+```{r si}
+sessionInfo()
+```

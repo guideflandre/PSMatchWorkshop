@@ -19,9 +19,9 @@ Depends:
     Biobase,
     S4Vectors,
     R (>= 4.1.0),
-    PSMatch (>= 1.15.3),
-    PTMods (>= 0.99.3)
-Suggests: 
+    PSMatch (>= 1.17.2),
+    PTMods (>= 1.1.1)
+Suggests:
     knitr,
     rmarkdown,
     pkgdown,
@@ -35,7 +35,10 @@ Suggests:
     BiocGenerics,
     ProtGenerics (>= 1.27.1),
     QFeatures,
-    MsCoreUtils
+    MsCoreUtils,
+    MsDataHub,
+    mzR,
+    factoextra
 URL: https://guideflandre.github.io/PSMatchWorkshop/
 BugReports: https://github.com/guideflandre/PSMatchWorkshop/issues/new/choose
 VignetteBuilder: knitr

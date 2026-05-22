@@ -1,52 +1,99 @@
-# BuildABiocWorkshop
+# Handling proteomics identification data with PSMatch.
 
-This package is a template for building a Bioconductor workshop. The package
-includes Github actions to:
+Authors: Guillaume Deflandre, Laurent Gatto and Sebastian Gibb.
 
-1. Set up bioconductor/bioconductor_docker:devel on Github resources
-2. Install package dependencies for your package (based on the `DESCRIPTION` file)
-3. Run `rcmdcheck::rcmdcheck`
-4. Build a pkgdown website and push it to github pages
-5. Build a docker image with the installed package and dependencies and deploy to [the Github Container Repository](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#pulling-container-images) at the name `ghcr.io/gihub_user/repo_name`, all lowercase. 
+## Overview {-}
 
-## Responsibilities
+### Description {-}
 
-Package authors are primarily responsible for:
+This workshop introduces you to the `r Biocpkg("PSMatch")` R and Bioconductor
+package. As you will see, the package also depends on another Bioconductor
+package called `r Biocpkg("PTMods")` and we also highly suggest using the 
+`r Biocpkg("Spectra")` package for plotting spectra. All three packages are part
+of the [R for Mass Spectrometry](https://www.rformassspectrometry.org/) package
+series and you are welcome to learn more about this project by visiting its
+corresponding website.
 
-1. Creating a landing site of their choosing for their workshops (a website). This website should be listed in the `DESCRIPTION` file as the `URL`.
-2. Creating a docker image that will contain workshop materials and the installed packages necessary to run those materials. The name of the resulting docker image, including "tag" if desired, should be listed in a non-standard tag, `DockerImage:` in the `DESCRIPTION` file. 
+In short, `PSMatch` is a Bioconductor package for handling proteomics
+identification data whilst `PTMods` handles post-translational modifications
+(PTMs). You are encouraged to run the code interactively as I will present each
+section.
 
-Both of those tasks can be accomplished using the Github actions included in this template package. The vignette accompanying this package describes how to accomplish both of these tasks.
+By the end of this workshop, you will be able to import, explore, filter, and
+visualise peptide-spectrum match (PSM) data; model peptide-protein
+relationships using adjacency matrices; and handle PTM annotations in a
+principled, reproducible manner.
 
-## Details
+### Pre-requisites {-}
 
-For detailed instructions, see the `How to build a workshop` article/vignette.
+- A conceptual understanding of shotgun proteomics: what a peptide
+  is, what a mass spectrum is, and what a database search does. 
 
-## Results of successful deployment
+### Suggested readings {-}
 
-- A working docker image that contains the installed package and dependencies.
-- An up-to-date `pkgdown` website at https://YOURUSERNAME.github.io/YOURREPOSITORYNAME/
-- Docker image will be tagged with `latest`, `sha-XXXXXX` where `XXXXXX` is the hash of the current `master` commit, and `master`. 
+- The `r Biocpkg("PSMatch")` package vignettes, accessible via
+`browseVignettes("PSMatch")`. 
+- The pre-print available on the OSF platform:
+[PSMatch: an R/Bioconductor package to explore proteomics identification
+data.](https://doi.org/10.31219/osf.io/62v9p_v3). Note that the package has
+gone through quite a few changes since.
 
-## To use the resulting image:
+### Participation {-}
 
-```sh
-docker run -e PASSWORD=<choose_a_password_for_rstudio> -p 8787:8787 YOURDOCKERIMAGENAME
+As I already mentioned, you are welcome to follow along with me. Code is
+provided in full, no typing from scratch is required. The code can be fetched
+from [this GitHub repo](https://github.com/guideflandre/PSMatchWorkshop).
+
+### Workshop goals {-}
+
+- Understand the structure of peptide-spectrum match data and how it is
+  represented in R using the `PSM` class.
+- Recognise the problem of shared peptides and protein ambiguity, and
+  know how adjacency matrices and connected components help address it.
+- Appreciate the diversity of PTM annotation conventions and know how
+  to convert between them and enumerate modified sequences.
+- Understand the sometimes lacking confidence in identifications and as such,
+  the importance of validating PSMs.
+
+### Learning objectives {-}
+
+- Import an identification data file into R and inspect the resulting `PSM`
+  object.
+- Apply the standard filtering steps (decoy removal, rank filtering,
+  shared-peptide filtering, fdr filtering) individually and via `filterPSMs()`.
+- Build an adjacency matrix and connected components from PSM data
+  and visualise a protein group as a bipartite graph.
+- Convert a PTM annotation between *deltaMass*, *unimodId*, and *name*
+  formats using `convertAnnotation()`.
+- Apply fixed and variable modifications to a peptide sequence and
+  calculate theoretical fragment ions that account for those
+  modifications.
+- Plot spectra by including annotations based on the identification.
+- Improve the confidence in a PSM using `validatePSM()`, built based
+  on spectral and identification metrics.
+
+
+## License 
+
+The content of this workshop is provided under a
+[CC-BY ShareAlike](https://creativecommons.org/licenses/by-sa/2.0/)
+license.
+
+
 ```
-Once running, navigate to http://localhost:8787/ and then login with `rstudio`:`yourchosenpassword`. 
+To cite the PSMatch package in publications use:
 
-To try with **this** repository docker image:
+  G. Deflandre, S. Gibbs and L. Gatto. PSMatch: an R/Bioconductor package to explore proteomics identification data.
+ OSF;
+  doi: https://doi.org/10.31219/osf.io/62v9p_v3
 
-```sh
-docker run -e PASSWORD=abc -p 8787:8787 ghcr.io/bioconductor/buildabiocworkshop
+A BibTeX entry for LaTeX users is
+
+  @Manual{,
+    title = {PSMatch: an R/Bioconductor package to explore proteomics identification data.},
+    author = {Guillaume Deflandre and Sebastian Gibbs and Laurent Gatto},
+    institution = {OSF},
+    year = {2025},
+    doi = {https://doi.org/10.31219/osf.io/62v9p_v2},
+  }
 ```
-
-*NOTE*: Running docker that uses the password in plain text like above exposes the password to others 
-in a multi-user system (like a shared workstation or compute node). In practice, consider using an environment 
-variable instead of plain text to pass along passwords and other secrets in docker command lines. 
-
-
-## Whatcha get
-
-- https://bioconductor.github.io/BuildABiocWorkshop
-- A Docker image that you can run locally, in the cloud, or (usually) even as a singularity container on HPC systems. 
