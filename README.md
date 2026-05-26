@@ -2,9 +2,9 @@
 
 Authors: Guillaume Deflandre, Laurent Gatto and Sebastian Gibb.
 
-## Overview {-}
+## Overview 
 
-### Description {-}
+### Description 
 
 This workshop introduces you to the `r Biocpkg("PSMatch")` R and Bioconductor
 package. As you will see, the package also depends on another Bioconductor
@@ -24,12 +24,12 @@ visualise peptide-spectrum match (PSM) data; model peptide-protein
 relationships using adjacency matrices; and handle PTM annotations in a
 principled, reproducible manner.
 
-### Pre-requisites {-}
+### Pre-requisites 
 
 - A conceptual understanding of shotgun proteomics: what a peptide
   is, what a mass spectrum is, and what a database search does. 
 
-### Suggested readings {-}
+### Suggested readings 
 
 - The `r Biocpkg("PSMatch")` package vignettes, accessible via
 `browseVignettes("PSMatch")`. 
@@ -38,13 +38,13 @@ principled, reproducible manner.
 data.](https://doi.org/10.31219/osf.io/62v9p_v3). Note that the package has
 gone through quite a few changes since.
 
-### Participation {-}
+### Participation 
 
 As I already mentioned, you are welcome to follow along with me. Code is
 provided in full, no typing from scratch is required. The code can be fetched
 from [this GitHub repo](https://github.com/guideflandre/PSMatchWorkshop).
 
-### Workshop goals {-}
+### Workshop goals 
 
 - Understand the structure of peptide-spectrum match data and how it is
   represented in R using the `PSM` class.
@@ -55,7 +55,7 @@ from [this GitHub repo](https://github.com/guideflandre/PSMatchWorkshop).
 - Understand the sometimes lacking confidence in identifications and as such,
   the importance of validating PSMs.
 
-### Learning objectives {-}
+### Learning objectives 
 
 - Import an identification data file into R and inspect the resulting `PSM`
   object.

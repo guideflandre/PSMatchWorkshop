@@ -52,108 +52,90 @@ vignette("slides", package = "PSMatchWorkshop")
 
 --
 
-**3. Workshop _R_ code** :
+**3. Workshop _R_ code:** 
 ["github/guideflandre/PSMatchWorkshop/inst/workshopCode.R"](https://github.com/guideflandre/PSMatchWorkshop/inst/workshopCode.R)
 
 --
 
-**4. PSMatch** : ["github/rformassspectrometry/PSMatch"](https://github.com/rformassspectrometry/PSMatch)
+**4. [PSMatch](https://github.com/rformassspectrometry/PSMatch), 
+[PTMods](https://github.com/rformassspectrometry/PTMods) and 
+[Spectra](https://github.com/rformassspectrometry/Spectra) packages:**
 
-**5. PTMods** : ["github/rformassspectrometry/PTMods"](https://github.com/rformassspectrometry/PTMods)
+```{r installPkg, eval = FALSE}
+BiocManager::install("rformassspectrometry/PSMatch@validatePSM")
+BiocManager::install("rformassspectrometry/PTMods")
+BiocManager::install("Spectra")
+```
+<img src="../images/PSMatch.png" style="position: absolute; bottom: 180px; right: 125px; width: 150px;">
+<img src="../images/Spectra.png" style="position: absolute; bottom: 50px; right: 199px; width: 150px;">
+<img src="../images,PTMods.png" style="position: absolute; bottom: 50px; right: 50px; width: 150px;">
 
 ---
 
 # Workshop outline
 
 .pull-left[
-**Part I — Background**
+**Part I: Brief recap and introduction**
 1. Mass spectrometry-based proteomics
-2. From spectra to peptide-spectrum matches
+2. From spectra to PSMs
 
-**Part II — PSMatch**
+**Part II: Handling identification data with PSMatch**
 3. The `PSM` class: loading and exploring
 4. Filtering PSM data
-5. Protein ambiguity and adjacency matrices
+5. Peptide-protein relationship and adjacency matrices
 ]
 
 .pull-right[
-**Part III — PTMods & beyond**
+**Part III: PTMods and spectrum annotation**
 
 6. PTM annotation styles and conversion
 7. Fixed and variable modifications
 8. Fragment ions and spectrum visualisation
-9. Validating PSMs
+
+**Part IV: Validating PSMs** 
+9. `validatePSM()` based on different metrics
 ]
-
-???
-
-Give the audience a roadmap before diving in. Emphasise that Parts II and III
-are hands-on — they should have R open.
 
 ---
 class: inverse, center, middle
 
-# Part I
-## Mass Spectrometry-Based Proteomics
+# Mass spectrometry-based proteomics
 
 ---
 
-# What is proteomics?
-
-.pull-left[
-- The **proteome** is the complete set of proteins expressed by a cell or
-  organism at a given time.
-- Unlike the genome, the proteome is **dynamic**: it changes with conditions,
-  time, and environment.
-- **Mass spectrometry** (MS) is the dominant technology for large-scale
-  proteome profiling.
-]
-
-.pull-right[
-*[Slide space reserved — add a cell-to-protein diagram or key numbers here]*
-]
-
-???
-
-Keep this short — most attendees already know what proteomics is.
-Emphasise the dynamic nature of the proteome to motivate the need for
-quantitative and qualitative tools.
-
----
-
-# The shotgun proteomics workflow
+# Bottom-up proteomics workflow
 
 .center[
-<img src="../images/workflow.png" width="700"/>
+<img src="../images/workflow.png" width="1000"/>
 ]
 
-???
+--
 
-Walk through the steps left to right:
-1. Sample preparation and digestion
-2. LC separation
-3. MS acquisition (MS1 → MS2)
-4. Computational analysis
+.center[
+**MS2 spectra:** fragments = digital foorprints of **peptidoforms**
+]
 
-Emphasise that PSMatch enters at step 4, after the raw data have been
-searched against a protein database.
+
+--
+
+.center[
+It is **not** proteoforms we identify, but **peptideoforms !**
+]
+
+--
+
+.center[
+Proteforms (groups) are later inferred based on the identified peptidoforms.
+]
+
 
 ---
 
 # From raw spectra to identifications
 
 .center[
-<img src="../images/dbSearch.png" width="700"/>
+<img src="../images/dbSearch.png" width="900"/>
 ]
-
-???
-
-Explain what a database search does:
-- Each MS2 spectrum is matched against theoretical spectra generated from
-  in-silico digested protein sequences.
-- The result is a scored list of candidate peptide-spectrum matches (PSMs).
-- Different search engines (Sage, MSFragger, MaxQuant, ...) produce
-  different file formats but share a common set of output fields.
 
 ---
 
@@ -173,48 +155,44 @@ Every search engine output, regardless of format, records at minimum:
 | **FDR** | False discovery rate estimate at that score |
 | **Decoy flag** | Whether the hit is a target or decoy |
 
-???
 
-PSMs are the atomic unit of proteomics identification data. Everything in
-the workshop is built around manipulating, filtering, and interpreting PSMs.
+---
 
+# Target-decoy competition, scoring and FDR
+
+<img src="../images/scoring.png" width="1000"
+     style="position: absolute; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%)">
 ---
 class: inverse, center, middle
 
-# Part II — PSMatch
-## The `PSM` class
+# PSMatch
 
-<img src="../images/PSMatch.png" width="200"/>
+<img src="../images/PSMatch.png" width="300"/>
 
 ---
 
 # Who is PSMatch for?
 
-PSMatch is for proteomics practitioners who want to **explore, filter, and
-annotate** their identification results after a database search.
+**Explore, filter, and annotate** identification results after a search.
 
 .pull-left[
 ### You have just run a search engine and want to…
 - Import the results into R
 - Filter low-confidence hits
 - Understand protein ambiguity
-- Annotate modifications
-- Visualise matching quality
+- Visualise and annotate matched spectra
 ]
+
+--
 
 .pull-right[
 ### PSMatch will not…
 - Run the database search itself
-- Replace your search engine scores
+- Replace your search engine scores (a.k.a rescoring tools)
 - Perform quantification
 
-*Think of it as the layer between raw search output and downstream analysis.*
 ]
-
-???
-
-Manage expectations early. PSMatch is a post-search exploration tool,
-not an end-to-end pipeline.
 
 ---
 
@@ -232,17 +210,34 @@ remotes::install_github(c(
 library(PSMatch)
 library(PTMods)
 library(Spectra)
-library(TargetDecoy)
 ```
-
-???
-
-Note that some features shown today are not yet in the Bioconductor release
-versions — hence the GitHub installs.
 
 ---
 
-# The `PSM()` constructor
+# Example data
+
+For this workshop, 2 example datasets will be used.
+
+One is already bundled within the PSMatch package. The other is available
+through `MsDataHub()`. 
+
+Their origin is of no importance for the workshop, but if you are interested,
+use `?MsDataHub::Boekweg2022` and 
+`?MsDataHub::TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.20141210.mzid`.
+
+Both were acquired after a database search.
+
+```{r load-data, eval = FALSE}
+## Data bundled in PSMatch
+data("psmBoekweg")
+
+## Data from MsDataHub
+f <- MsDataHub::TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.20141210.mzid()
+```
+
+---
+
+# The PSM() constructor
 
 `PSM` is a lightweight extension of `DFrame` (S4Vectors):
 
@@ -251,11 +246,9 @@ versions — hence the GitHub installs.
 - Key variables (spectrum, peptide, protein, …) are **named** on construction
 
 ```{r psm-load, eval = FALSE}
-data("psmBoekweg")
-
 psms <- PSM(
     x = psmBoekweg,
-    spectrum = "pkey", # unique spectrum identifier
+    spectrum = "pkey", 
     peptide = "peptide",
     protein = "protein",
     decoy = "label",
@@ -265,11 +258,6 @@ psms <- PSM(
 )
 psms
 ```
-
-???
-
-Show the printed output of `psms`. Point out the summary line: number of
-rows, columns, unique spectra, decoy count, rank range.
 
 ---
 
@@ -285,7 +273,6 @@ names(psms) ## all column names
 PSM objects from **mzIdentML** files are constructed identically:
 
 ```{r id-load, eval = FALSE}
-f <- MsDataHub::TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.20141210.mzid()
 id <- PSM(
     x = f,
     spectrum = "spectrumID",
@@ -298,18 +285,12 @@ id <- PSM(
 )
 ```
 
-???
-
-The same API works for data.frame and mzid inputs — emphasise the
-uniformity.
-
 ---
 
 # Target-decoy approach
 
 .pull-left[
-- Decoy hits (reversed/randomised sequences) are used to **estimate the FDR**.
-- Loaded data are unfiltered — decoys are present alongside targets.
+- Decoy hits are used to **estimate the FDR**.
 - `TargetDecoy::evalTargetDecoysHist()` checks the quality of the
   target-decoy score distributions.
 ]
@@ -326,46 +307,46 @@ evalTargetDecoysHist(
 ```
 ]
 
-???
-
-A good target-decoy distribution shows:
-- Bimodal target distribution
-- Decoy distribution fitting the first (low-score) peak of targets
-- Clear separation at higher scores
-
-A bad distribution (e.g., decoys mixed with high-scoring targets) suggests
-issues with the database search or sample complexity.
-
+<img src="../images/scoring.png" width="800"
+     style="position: absolute; top: 75%; left: 50%; 
+            transform: translate(-50%, -50%)">
 ---
 
 # Multiple matches per spectrum
 
 A search engine can return **more than one candidate** per spectrum.
 
-```{r psm-multi, eval = FALSE}
-table(table(id$spectrumID))
+## Reducing PSMs
+
+When multiple matches exist, you can either:
+
+1. **Filter**: keep only rank-1 hits, remove shared peptides
+2. **Reduce**: collapse multiple rows into one per spectrum
+
+```{r reduce, eval = FALSE}
+idReduced <- reducePSMs(id, id$spectrumID)
+anyDuplicated(idReduced$spectrumID) ## 0: one row per spectrum
 ```
-
-Scan 1774 for example has 4 matches — all the same peptide sequence but
-mapped to four **different proteins**:
-
-```{r psm-scan1774, eval = FALSE}
-i <- grep("scan=1774", id$spectrumID)
-data.frame(id)[i, c("spectrumID", "sequence", "DatabaseAccess", "rank")]
-```
-
-This is a **shared peptide**: one sequence that maps to multiple proteins.
-
-???
-
-This slide motivates both rank filtering and the adjacency matrix section.
-Shared peptides are ubiquitous in proteomics and directly affect protein
-inference.
 
 ---
+
+# Shared peptides
+
+A **shared peptide** is a peptide whose sequence is present in more than
+one protein.
+
+--
+
+**Consequence**: the protein of origin cannot be determined from the
+peptide alone: this creates **protein ambiguity**.
+
+We will come back to this in a moment.
+
+---
+
 class: inverse, center, middle
 
-# Filtering PSM Data
+# Filtering PSM data
 
 ---
 
@@ -373,10 +354,10 @@ class: inverse, center, middle
 
 Raw search output contains:
 
-- **Decoy hits** — needed for FDR estimation, not biological
-- **Rank > 1 hits** — lower-confidence alternative candidates
-- **Shared peptides** — ambiguous protein assignments
-- **High-FDR hits** — below the confidence threshold
+- **Decoy hits**: needed for FDR estimation, not biological
+- **Rank > 1 hits**: lower-confidence alternative candidates
+- **Shared peptides**: ambiguous protein assignments
+- **High-FDR hits**: below the confidence threshold
 
 PSMatch provides a targeted function for each case, plus a convenience
 wrapper.
@@ -398,50 +379,23 @@ id |> filterPSMs() ## decoy, rank, shared
 psms |> filterPsmFdr(FDR = 0.01)
 ```
 
-???
-
-filterPsmShared() is intentionally excluded from filterPSMs() — the user
-must decide whether to remove shared peptides, as they may still be
-biologically relevant.
-
----
-
-# `reducePSMs()` — one row per spectrum
-
-When you want to **retain** multiple hits but collapse them:
-
-```{r reduce, eval = FALSE}
-idReduced <- reducePSMs(id, id$spectrumID)
-anyDuplicated(idReduced$spectrumID) ## 0 — one row per spectrum
-
-## Multiple proteins are stored as lists within cells
-j <- grep("scan=1774", idReduced$spectrumID)
-data.frame(idReduced)[j, "DatabaseAccess"]
-
-reduced(idReduced) ## TRUE
-```
-
-???
-
-`reducePSMs()` is useful when downstream tools expect one row per spectrum
-but you still want to preserve the protein-level ambiguity information.
-
 ---
 class: inverse, center, middle
 
-# Protein Ambiguity & Adjacency Matrices
+# Protein ambiguity & adjacency matrices
 
 ---
 
 # The protein ambiguity problem
 
-A PSM table hides an important structure: the **peptide ↔ protein
+A PSM table hides an important structure: the **peptide-protein
 relationship**.
 
 .pull-left[
-- **Unique peptides** map to exactly one protein — unambiguous.
-- **Shared peptides** map to two or more proteins — the protein of origin
-  cannot be determined from the peptide alone.
+- **Unique peptides** map to exactly one protein: unambiguous.
+- **Shared peptides** map to two or more proteins: the protein of
+  origin cannot be determined from the peptide alone.
+- Two proteins that share a peptide are **connected**.
 ]
 
 .pull-right[
@@ -451,88 +405,50 @@ describeProteins(psms)
 ```
 ]
 
-???
-
-describePeptides() and describeProteins() give a quick numeric summary.
-Read out some numbers from the actual output, e.g. "9254 unique peptides,
-4021 uniquely linked to one protein".
-
 ---
 
-# The adjacency matrix
+# The adjacency matrix concept
 
-`makeAdjacencyMatrix()` models the peptide ↔ protein relationship as a
+`makeAdjacencyMatrix()` models the peptide-protein relationship as a
 **sparse matrix**:
 
 - **Rows** = peptides
 - **Columns** = proteins
 - **Entry (i, j)** > 0 if peptide *i* was observed for protein *j*
 
-```{r adj-build, eval = FALSE}
-psmsFiltered <- psms |>
-    filterPsmDecoy() |>
-    filterPsmRank()
+Values can be:
+- **Binary** (1/0): presence/absence
+- **Counts**: number of PSMs
+- **Weighted**: sum of scores
 
+```{r adj-build, eval = FALSE}
+psmsFiltered <- psms |> filterPsmDecoy() |> filterPsmRank()
+adj <- makeAdjacencyMatrix(psmsFiltered, binary = TRUE) ## binary
 adj <- makeAdjacencyMatrix(psmsFiltered) ## weighted (sum of scores)
 adj <- makeAdjacencyMatrix(psmsFiltered, score = NA) ## counts
 ```
-
-???
-
-Mention the binary = TRUE option for a 0/1 matrix if scores are not
-meaningful in a given context.
 
 ---
 
 # Connected components
 
-The full matrix is too large to interpret — split it into **connected
+The full matrix is too large to interpret: split it into **connected
 components**: groups of peptides and proteins that share at least one link.
 
 ```{r cc-build, eval = FALSE}
 cc <- ConnectedComponents(adj)
-cc
-length(cc)
 ```
 
 --
 
-Four archetypal component types:
+Four component types:
 
 | Type | Proteins | Peptides |
 |---|---|---|
-| Trivial unique | 1 | 1 |
-| Well-identified protein | 1 | many |
-| Shared-peptide ambiguity | many | 1 |
-| Complex group | many | many |
-
-```{r cc-types, eval = FALSE}
-connectedComponents(cc, 2) ## 1 protein, 1 peptide
-connectedComponents(cc, 22) ## 1 protein, many peptides
-connectedComponents(cc, 1) ## many proteins, 1 shared peptide
-connectedComponents(cc, 11) ## complex
-```
-
----
-
-# Visualising a component
-
-`plotAdjacencyMatrix()` draws a **bipartite graph**: proteins as blue
-squares, peptides as white circles, edges indicate observation.
-
-```{r adj-plot, eval = FALSE}
-cx <- connectedComponents(cc, 1049)
-cx
-plotAdjacencyMatrix(cx)
-```
-
-*[Insert example plot here — proteins, shared peptide, sub-groups]*
-
-???
-
-Walk through what the graph reveals: which peptide is shared across all
-proteins, what happens if you remove it, how sub-groups would become
-unambiguous.
+| Trivial/unique | 1 | 1 |
+| Well-identified protein | 1 | > 1 |
+| Shared-peptide ambiguity | > 1 | 1 |
+| Complex group | > 1 | > 1 |
 
 ---
 
@@ -543,7 +459,6 @@ structural metrics (dimensions, sparsity, modularity, …).
 
 ```{r cc-prioritise, eval = FALSE}
 cctab <- prioritiseConnectedComponents(cc)
-head(cctab, 15)
 ```
 
 --
@@ -555,20 +470,32 @@ library("factoextra")
 fviz_pca(prcomp(cctab, scale = TRUE, center = TRUE))
 ```
 
-???
-
-This is especially useful in large datasets where you cannot inspect
-every connected component manually.
-
 ---
 class: inverse, center, middle
 
-# Part III — PTMods
-## Handling Post-Translational Modifications
+# Handling Post-Translational Modifications
+
+<img src="../images/PTMods.png" width="300"/>
 
 ---
 
-# The annotation chaos problem
+# What are PTMs?
+
+**Post-Translational Modifications (PTMs)** are chemical modifications
+that occur on amino acids after translation.
+
+Common examples:
+- **Oxidation** (e.g. on methionine): +15.995 Da
+- **Phosphorylation** (e.g. on serine, threonine): +79.966 Da
+- **Carbamidomethylation** (e.g. on cysteine): +57.021 Da
+- **Acetylation** (e.g. on N-terminus, lysine): +42.011 Da
+
+PTMs change the **mass** of the peptide and thus affect both precursor
+and fragment ion masses.
+
+---
+
+# Different annotation styles
 
 Different search engines use different syntaxes for the same modification:
 
@@ -578,18 +505,10 @@ Different search engines use different syntaxes for the same modification:
 | `unimodId` | `M[UNIMOD:35]PEPTIDE` | (MSFragger) |
 | `name` | `M[Oxidation]PEPTIDE` | MaxQuant |
 
-**PTMods** handles all three transparently, using an up-to-date mapping
-from [unimod.org](https://www.unimod.org).
+**PTMods** handles all three, using an up-to-date mapping from
+[unimod.org](https://www.unimod.org).
 
-???
-
-This is a practical pain point for anyone working with multiple search
-engines or trying to combine datasets. The point of PTMods is to make this
-conversion trivial.
-
----
-
-# `convertAnnotation()`
+--
 
 ```{r ptmods-convert, eval = FALSE}
 ## Name → deltaMass
@@ -599,190 +518,85 @@ convertAnnotation("M[Oxidation]PEPTIDE", convertToStyle = "deltaMass")
 convertAnnotation("M[+15.995]PEPTIDE", convertToStyle = "name")
 ```
 
-PSMatch calls `convertAnnotation()` internally when needed — but you can
-also use it directly to normalise annotations across datasets.
-
 ---
 
-# Fixed modifications
+# Fixed and variable modifications
 
-`addFixedModifications()` applies a modification to **every eligible
-residue** (or terminus) unconditionally.
+.pull-left[
+### Fixed modifications
+- Applied to **every** eligible residue
+- Unconditional
+- Example: carbamidomethylation on all cysteines
 
 ```{r ptmods-fixed, eval = FALSE}
-## Carbamidomethylation on every cysteine (default)
-addFixedModifications("SCALITDGR",
-    fixedModifications = c(C = "Carbamidomethyl")
-)
-
-## TMT label on the N-terminus
-addFixedModifications("SCALITDGR",
-    fixedModifications = c(Nterm = 304.207)
-)
-
-## Modification at a specific position only
-addFixedModifications("SCALITDGR",
-    fixedModifications = c("Fluoro"), pos = 1
-)
+addFixedModifications()
 ```
+]
 
-???
+.pull-right[
+### Variable modifications
+- **May or may not** be present
+- Generates all possible combinations
+- Example: oxidation on methionine
 
-Fixed mods are always applied — they reflect experimental conditions that
-apply to every peptide (e.g. alkylation, isobaric labelling).
-
----
-
-# Variable modifications
-
-`addVariableModifications()` enumerates **all possible modified forms** of
-a sequence — one for each combination of zero, one, or more modifications
-on eligible residues.
-
-```{r ptmods-variable, eval = FALSE}
-addVariableModifications("MPEPTIDE",
-    variableModifications = c(M = -15.995, T = "Phospho")
-)
+```{r ptmods-var-preview, eval = FALSE}
+addVariableModifications()
 ```
-
---
-
-The number of sequences grows **exponentially** — `maxMods` keeps it
-tractable:
-
-```{r ptmods-maxmods, eval = FALSE}
-addVariableModifications("MPEPTIDE",
-    variableModifications = c(M = -15.995, T = "Phospho"),
-    maxMods = 1
-)
-```
-
----
-
-# `getCanonicalSequence()`
-
-Strip all modification annotations to recover the bare amino-acid sequence:
-
-```{r ptmods-canonical, eval = FALSE}
-getCanonicalSequence("[+304]-M[Oxidation]PEPT[UNIMOD:21]IDE")
-## → "MPEPTIDE"
-```
-
-Useful for **grouping** modified and unmodified forms of the same peptide,
-or for passing sequences to tools that do not accept modification notation.
+]
 
 ---
 class: inverse, center, middle
 
-# Fragment Ions & Spectrum Visualisation
+# Fragment ions & spectrum visualisation
 
 ---
 
-# b- and y-ion series
+# Theoretical fragment ions
 
-When a peptide is fragmented in the MS2 step, backbone bonds break and
-produce two complementary ion series:
+**How are peptides identified?**
 
-.pull-left[
-**b-ions** — fragments from the **N-terminus**
-$b_1, b_2, \ldots, b_{n-1}$
+1. MS2 spectrum contains observed fragment ions (peaks)
+2. Search engine generates **theoretical** fragment ions from candidate
+   sequences
+3. Matching observed to theoretical peaks scores the identification
+
+--
+
+**b- and y-ion series** are the most common fragment types:
+
+.center[
+<img src="../images/ions.png" width="300"/>
 ]
-.pull-right[
-**y-ions** — fragments from the **C-terminus**
-$y_1, y_2, \ldots, y_{n-1}$
-]
-
-*[Reserve space for an ion-series diagram here]*
-
-`PSMatch::calculateFragments()` computes the theoretical m/z values for
-all standard ion types.
 
 ---
 
-# `calculateFragments()`
+# Generating theoretical fragments
 
-```{r frag-calc, eval = FALSE}
-frags <- calculateFragments(
-    "M[Oxidation]PEPTIDE",
-    addCarbamidomethyl = FALSE
-)
-frags
+`calculateFragments()` computes the theoretical m/z values for all
+standard ion types from a given peptide sequence.
+
+Supports PTMs via `PTMods`.
+
+```{r frag-concept, eval = FALSE}
+## Unmodified peptide
+calculateFragments("PEPTIDE")
+
+## Modified peptide: fragment masses will differ
+calculateFragments("M[Oxidation]PEPTIDE")
 ```
 
-Output columns:
-
-| Column | Description |
-|---|---|
-| `mz` | Theoretical m/z of the fragment |
-| `ion` | Label (e.g. `b3`, `y5`) |
-| `type` | Ion series (`b`, `y`, `a`, …) |
-| `z` | Charge state |
-| `pos` | Fragment subsequence |
-| `peptide` | Precursor sequence |
-
 ---
 
-# Fragment ions with PTM enumeration
-
-Combine `addVariableModifications()` and `calculateFragments()` to compute
-theoretical ions for **all possible modified forms** of a sequence:
-
-```{r frag-ptmods, eval = FALSE}
-varSeqs <- addVariableModifications("ATK",
-    variableModifications = c(T = "Phospho")
-)
-
-calculateFragments(varSeqs, verbose = FALSE)
-```
-
-Each row is traceable back to its modified precursor via the `peptide`
-column.
-
----
-
-# `plotSpectraPTM()` — annotated spectrum
+# Visualising annotated spectra
 
 `plotSpectraPTM()` overlays theoretical fragments on an observed MS2
 spectrum:
 
-```{r frag-plot, eval = FALSE}
-plotSpectra(sp6570[2]) ## raw (unannotated)
-plotSpectraPTM(sp6570[2]) ## annotated
-```
+The figure shows:
 
-The figure contains three panels:
-
-1. **Sequence coverage** — which b/y ions were matched along the sequence
-2. **Annotated spectrum** — observed peaks, matched peaks coloured by ion
-   type, base peak intensity labelled
-3. **ΔMz plot** — observed minus theoretical m/z for matched peaks
-
----
-
-# Using `plotSpectraPTM()` to validate PTMs
-
-Compare the same scan **with and without** a modification to confirm it is
-genuine:
-
-```{r frag-compare, eval = FALSE}
-spComp <- sp6570[2]
-spComp$sequence <- getCanonicalSequence(spComp$sequence)
-
-plotSpectraPTM(spComp,
-    variableModifications = c(M = "Oxidation"),
-    deltaMz = FALSE,
-    asp = 2 / 1,
-    main = c("Scan 6570 — no oxidation", "Scan 6570 — with oxidation")
-)
-```
-
-More matched fragments in the modified form → modification is genuine.
-
-???
-
-This is one of the most powerful diagnostic tools in the package. Walk
-through a real example slowly, pointing out how the sequence coverage
-diagram changes.
+1. **Sequence coverage**: which b/y ions were matched
+2. **Annotated spectrum**: peaks coloured by ion type (b, y, etc.)
+3. **ΔMz plot**: observed minus theoretical m/z (quality check)
 
 ---
 class: inverse, center, middle
@@ -793,111 +607,22 @@ class: inverse, center, middle
 
 # Why validate?
 
-Search engine scores and FDR give a **global** estimate of confidence.
-They do not tell you whether a specific PSM is plausible.
-
-`validatePSM()` adds **per-PSM spectral and identification metrics** that
-are not reported by search engines:
+`validatePSM()` adds **per-PSM spectral and identification metrics** not
+reported by search engines.
 
 ```{r validate, eval = FALSE}
-scans_seq <- precScanNum(sp[!is.na(sp[["sequence"]])])
-sp <- filterPrecursorScan(sp, scans_seq)
-
 res <- validatePSM(sp[1:20],
     peptideVariable = psmVar["peptide"],
-    fdr             = psmVar["fdr"]
+    fdr = psmVar["fdr"]
 )
 res
 ```
-
----
-
-# `checkOverlap()` — gap detection
-
-`checkOverlap()` checks whether the matched b- and y-ions together
-**cover the entire sequence** without a gap.
-
-```{r overlap, eval = FALSE}
-checkOverlap(sp_ms2[10]) ## FALSE = gap detected
-plotSpectraPTM(sp_ms2[10])
-```
-
-A gap means that a stretch of the peptide sequence has never been matched.
-
-.pull-left[
-**Possible explanations**
-- An unaccounted-for modification in that region
-- A sequencing error
-- A low-quality identification
-]
-.pull-right[
-**Next steps**
-- Re-search with variable mods (phospho, oxidation…)
-- Inspect the ΔMz plot
-- Increase the ppm tolerance and re-examine
-]
-
----
-
-# Adding metrics to the PSM table
-
-Validation metrics can be merged back into the original PSM object for
-downstream filtering or modelling:
-
-```{r addMetrics, eval = FALSE}
-psm_df <- as.data.frame(psms)
-combined <- merge(psm_df, res,
-    by.x = "scannr", by.y = "spectrumId",
-    all.x = FALSE
-)
-```
-
-For a detailed treatment of all available metrics, see:
-
-```{r validate-vignette, eval = FALSE}
-vignette("validatePSM", package = "PSMatch")
-```
-
----
-class: inverse, center, middle
-
-# Summary
-
----
-
-# What we covered
-
-1. **`PSM()`** — import identification data from any search engine output
-   into a tidy, named object.
-
-2. **Filtering** — `filterPsmDecoy()`, `filterPsmRank()`,
-   `filterPsmShared()`, `filterPsmFdr()`, and the `filterPSMs()` wrapper.
-
-3. **Adjacency matrices** — `makeAdjacencyMatrix()`,
-   `ConnectedComponents()`, `plotAdjacencyMatrix()`, and
-   `prioritiseConnectedComponents()` for exploring protein ambiguity.
-
-4. **PTMods** — `convertAnnotation()`, `addFixedModifications()`,
-   `addVariableModifications()`, and `getCanonicalSequence()` for
-   principled PTM handling.
-
-5. **Fragment ions** — `calculateFragments()` and `plotSpectraPTM()` for
-   spectrum annotation and modification validation.
-
-6. **Validation** — `validatePSM()` and `checkOverlap()` for per-PSM
-   confidence metrics.
 
 ---
 class: center, middle
 
 # Thank you
 
-.large[Questions? Find the code at
-[github.com/guideflandre/PSMatchWorkshop](https://github.com/guideflandre/PSMatchWorkshop)]
+.large[Thank you for your attention]
 
 `r Sys.Date()`
-
-???
-
-Leave time for questions. Remind attendees that the vignette contains
-all the code shown today with full output.

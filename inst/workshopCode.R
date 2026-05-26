@@ -4,7 +4,7 @@
 remotes::install_github(c(
     "rformassspectrometry/PSMatch@validatePSM",
     "rformassspectrometry/PTMods"
-), build_vignettes = TRUE)
+), build_vignettes = TRUE, force = TRUE)
 
 ## Install other required Bioconductor packages
 if (!require("BiocManager", quietly = TRUE)) {
@@ -18,7 +18,6 @@ BiocManager::install(c("Spectra", "MsDataHub", "TargetDecoy"))
 library(PSMatch)
 library(PTMods)
 library(Spectra)
-library(TargetDecoy)
 
 
 ### Load Example Data ###
@@ -35,18 +34,17 @@ head(psmBoekweg$pkey <- paste0(
     sub("^.+scan=", "::", psmBoekweg$scannr)
 ))
 
-(
-    psms <- PSM(
-        x = psmBoekweg,
-        spectrum = "pkey",
-        peptide = "peptide",
-        protein = "protein",
-        decoy = "label",
-        rank = "rank",
-        score = "hyperscore",
-        fdr = "spectrum_q"
-    )
+psms <- PSM(
+    x = psmBoekweg,
+    spectrum = "pkey",
+    peptide = "peptide",
+    protein = "protein",
+    decoy = "label",
+    rank = "rank",
+    score = "hyperscore",
+    fdr = "spectrum_q"
 )
+psms
 
 ## Load the TMT Erwinia mzIdentML file
 f <- MsDataHub::TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.20141210.mzid()
@@ -74,15 +72,16 @@ names(psms)
 
 ### Decoy and Target Hits ###
 
-## Filter out decoy hits
-psms
-(psmsNoDecoys <- filterPsmDecoy(psms))
-
 ## Evaluate target-decoy distribution
+library(TargetDecoy)
 evalTargetDecoysHist(data.frame(psms),
     decoy = "label", score = "sage_discriminant_score",
     log10 = FALSE, nBins = 80
 )
+
+## Filter out decoy hits
+psms
+(psmsNoDecoys <- filterPsmDecoy(psms))
 
 
 ### Multiple Matches Per Spectrum ###
@@ -113,20 +112,20 @@ data.frame(idReduced)[j, "DatabaseAccess"]
 reduced(idReduced)
 
 
-### Filter PSM Data ###
+### Filter PSM data ###
 
 ## Apply filterPSMs and filterPsmFdr
 id |> filterPSMs()
 psms |> filterPsmFdr(FDR = 0.01)
 
 
-### Describe Peptides and Proteins ###
+### Describe peptides and proteins ###
 
 describePeptides(psms)
 describeProteins(psms)
 
 
-### Adjacency Matrices ###
+### Adjacency matrices ###
 
 ## Reload and filter keeping shared peptides
 psmsFiltered <- psms |>
@@ -159,7 +158,7 @@ connectedComponents(cc, 1)
 connectedComponents(cc, 11)
 
 
-### Visualise Complex Components ###
+### Visualise complex components ###
 
 ## Find large connected components
 head(largeCC <- which(nrows(cc) > 2 & ncols(cc) > 2), 15)
@@ -171,7 +170,7 @@ cx
 plotAdjacencyMatrix(cx)
 
 
-### Prioritise Connected Components ###
+### Prioritise connected components ###
 
 ## Compute metrics and rank components
 cctab <- prioritiseConnectedComponents(cc)
@@ -182,7 +181,7 @@ library("factoextra")
 fviz_pca(prcomp(cctab, scale = TRUE, center = TRUE))
 
 
-### PTM Annotation Conversion ###
+### PTM annotation conversion ###
 
 ## Name → deltaMass
 convertAnnotation(
@@ -197,29 +196,29 @@ convertAnnotation(
 )
 
 
-### Add Fixed Modifications ###
+### Add fixed modifications ###
 
 ## Add carbamidomethylation to cysteines
 addFixedModifications(
-    "SCALITDGR",
+    "SCALITDCGR",
     fixedModifications = c(C = "Carbamidomethyl")
 )
 
 ## TMT labelling of the N-terminus (mass 304.207 Da)
 addFixedModifications(
     "SCALITDGR",
-    fixedModifications = c(Nterm = 304.207)
+    fixedModifications = c(Nterm = 304.207, C = "Carbamidomethyl")
 )
 
 ## Fluoro modification at position 1 only
 addFixedModifications(
-    "SCALITDGR",
+    "CALSITDGR",
     fixedModifications = c("Fluoro"),
-    pos = 1
+    pos = 4
 )
 
 
-### Add Variable Modifications ###
+### Add variable modifications ###
 
 ## Generate all possible modification combinations
 addVariableModifications(
@@ -293,16 +292,16 @@ calculateFragments(varSeqs, verbose = FALSE)
 ### Visualise Spectra ###
 
 ## Plot raw spectrum without annotation
-plotSpectra(sp6570[2])
+plotSpectra(sp6570[2], allCharges = TRUE)
 
 ## Plot annotated spectrum with PTMs
-plotSpectraPTM(sp6570[2])
+plotSpectraPTM(sp6570[2], allCharges = TRUE)
 
 
 ### Adjust PPM Tolerance ###
 
 ## Increase ppm tolerance to match more peaks
-plotSpectraPTM(sp6570[2], ppm = 150)
+plotSpectraPTM(sp6570[2], ppm = 150, allCharges = TRUE)
 
 
 ### Compare Modification Scenarios ###
@@ -347,6 +346,6 @@ checkOverlap(sp_ms2[10])
 plotSpectraPTM(sp_ms2[10])
 
 
-### Session Information ###
+### Session information ###
 
 sessionInfo()
