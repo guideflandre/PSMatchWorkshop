@@ -5,6 +5,10 @@ output:
     BiocStyle::html_document:
         toc_float: true
         toc_depth: 3
+resource_files:
+    - images/PSMatch.png
+    - images/workflow.png
+    - images/dbSearch.png
 vignette: >
     %\VignetteIndexEntry{PSMatch Workshop}
     %\VignetteEngine{knitr::rmarkdown}
