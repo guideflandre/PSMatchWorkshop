@@ -6,10 +6,10 @@ Authors: Guillaume Deflandre, Laurent Gatto and Sebastian Gibb.
 
 ### Description 
 
-This workshop introduces you to the `r Biocpkg("PSMatch")` R and Bioconductor
+This workshop introduces you to the `PSMatch` _R_ and Bioconductor
 package. As you will see, the package also depends on another Bioconductor
-package called `r Biocpkg("PTMods")` and we also highly suggest using the 
-`r Biocpkg("Spectra")` package for plotting spectra. All three packages are part
+package called `PTMods` and we also highly suggest using the 
+`Spectra` package for plotting spectra. All three packages are part
 of the [R for Mass Spectrometry](https://www.rformassspectrometry.org/) package
 series and you are welcome to learn more about this project by visiting its
 corresponding website.
@@ -31,7 +31,7 @@ principled, reproducible manner.
 
 ### Suggested readings 
 
-- The `r Biocpkg("PSMatch")` package vignettes, accessible via
+- The `PSMatch` package vignettes, accessible via
 `browseVignettes("PSMatch")`. 
 - The pre-print available on the OSF platform:
 [PSMatch: an R/Bioconductor package to explore proteomics identification
@@ -79,10 +79,9 @@ The content of this workshop is provided under a
 [CC-BY ShareAlike](https://creativecommons.org/licenses/by-sa/2.0/)
 license.
 
-
-```
 To cite the PSMatch package in publications use:
 
+```
   G. Deflandre, S. Gibbs and L. Gatto. PSMatch: an R/Bioconductor package to explore proteomics identification data.
  OSF;
   doi: https://doi.org/10.31219/osf.io/62v9p_v3
