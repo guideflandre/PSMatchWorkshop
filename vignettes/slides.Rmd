@@ -54,6 +54,8 @@ remotes::install_github("guideflandre/PSMatchWorkshop", build_vignettes = TRUE)
 ## Run docker image (~3min)
 docker run -p 8787:8787 -e PASSWORD=psmatch guillaumedeflandre/psmatchworkshop
 ```
+Then, open your browser and search: `localhost:8787`. The username is `rstudio`
+and the password is `psmatch`.
 
 --
 
@@ -64,9 +66,14 @@ vignette("PSMatchWorkshop", package = "PSMatchWorkshop")
 vignette("slides", package = "PSMatchWorkshop")
 ```
 
---
+---
+
+# Code and data availability
 
 **3. Workshop _R_ code:** 
+
+The code I will demonstrate is the same as the code in the vignette, but
+without the explanations. It is available on the github page:
 ["github/guideflandre/PSMatchWorkshop/inst/workshopCode.R"](https://github.com/guideflandre/PSMatchWorkshop/inst/workshopCode.R)
 
 --
@@ -80,9 +87,9 @@ BiocManager::install("rformassspectrometry/PSMatch@validatePSM")
 BiocManager::install("rformassspectrometry/PTMods")
 BiocManager::install("Spectra")
 ```
-<img src="images/PSMatch.png" style="position: absolute; bottom: 180px; right: 125px; width: 150px;">
-<img src="images/Spectra.png" style="position: absolute; bottom: 50px; right: 199px; width: 150px;">
-<img src="images/PTMods.png" style="position: absolute; bottom: 50px; right: 50px; width: 150px;">
+<img src="../images/PSMatch.png" style="position: absolute; bottom: 180px; right: 125px; width: 150px;">
+<img src="../images/Spectra.png" style="position: absolute; bottom: 50px; right: 199px; width: 150px;">
+<img src="../images/PTMods.png" style="position: absolute; bottom: 50px; right: 50px; width: 150px;">
 
 ---
 
@@ -120,7 +127,7 @@ class: inverse, center, middle
 # Bottom-up proteomics workflow
 
 .center[
-<img src="images/workflow.png" width="1000"/>
+<img src="../images/workflow.png" width="1000"/>
 ]
 
 --
@@ -148,7 +155,7 @@ Proteforms (groups) are later inferred based on the identified peptidoforms.
 # From raw spectra to identifications
 
 .center[
-<img src="images/dbSearch.png" width="900"/>
+<img src="../images/dbSearch.png" width="900"/>
 ]
 
 ---
@@ -174,7 +181,7 @@ Every search engine output, regardless of format, records at minimum:
 
 # Target-decoy competition, scoring and FDR
 
-<img src="images/scoring.png" width="1000"
+<img src="../images/scoring.png" width="1000"
      style="position: absolute; top: 50%; left: 50%; 
             transform: translate(-50%, -50%)">
 ---
@@ -182,7 +189,7 @@ class: inverse, center, middle
 
 # PSMatch
 
-<img src="images/PSMatch.png" width="300"/>
+<img src="../images/PSMatch.png" width="300"/>
 
 ---
 
@@ -321,7 +328,7 @@ evalTargetDecoysHist(
 ```
 ]
 
-<img src="images/scoring.png" width="800"
+<img src="../images/scoring.png" width="800"
      style="position: absolute; top: 75%; left: 50%; 
             transform: translate(-50%, -50%)">
 ---
@@ -489,7 +496,7 @@ class: inverse, center, middle
 
 # Handling Post-Translational Modifications
 
-<img src="images/PTMods.png" width="300"/>
+<img src="../images/PTMods.png" width="300"/>
 
 ---
 
@@ -579,7 +586,7 @@ class: inverse, center, middle
 **b- and y-ion series** are the most common fragment types:
 
 .center[
-<img src="images/ions.png" width="300"/>
+<img src="../images/ions.png" width="300"/>
 ]
 
 ---
