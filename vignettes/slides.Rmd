@@ -41,9 +41,18 @@ use_webcam()
 
 **1. Install the PSMatchWorkshop package:**
 
+## From remote
+
 ```{r installWorkshop, eval = FALSE}
 install.packages(c("xaringan", "xaringanExtra")) ## For building slides
 remotes::install_github("guideflandre/PSMatchWorkshop", build_vignettes = TRUE)
+```
+
+## From docker image
+
+```{bash installImage, eval = FALSE}
+## Run docker image (~3min)
+docker run -p 8787:8787 -e PASSWORD=psmatch guillaumedeflandre/psmatchworkshop
 ```
 
 --
