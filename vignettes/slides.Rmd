@@ -42,6 +42,7 @@ use_webcam()
 **1. Install the PSMatchWorkshop package:**
 
 ```{r installWorkshop, eval = FALSE}
+install.packages(c("xaringan", "xaringanExtra")) ## For building slides
 remotes::install_github("guideflandre/PSMatchWorkshop", build_vignettes = TRUE)
 ```
 
