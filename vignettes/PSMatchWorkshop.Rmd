@@ -18,7 +18,7 @@ BiocStyle::markdown()
 ```
 **Authors**: `r packageDescription("PSMatch")[["Author"]] `<br />
 
-<img src="../images/PSMatch.png" width="300"/>
+<img src="images/PSMatch.png" width="300"/>
 
 ## Overview {-}
 
@@ -96,7 +96,7 @@ from [this GitHub repo](https://github.com/guideflandre/PSMatchWorkshop).
 The package is built for proteomics practitioners who want to explore their
 identification data or peptide-spectrum matches.
 
-<img src="../images/workflow.png" width="600"/>
+<img src="images/workflow.png" width="600"/>
 
 In mass spectrometry-based proteomics, after generation of raw spectra, you
 would typically apply a database search or _de novo_ sequencing to identify
@@ -104,7 +104,7 @@ which peptide could have been at the origin of each MS2 spectrum. The
 identifications, or so-called Peptide-Spectrum Matches (PSMs) are the results
 of this search.
 
-<img src="../images/dbSearch.png" width="600"/>
+<img src="images/dbSearch.png" width="600"/>
 
 `PSMatch` is the package you reach for once a search engine has matched your
 spectra to peptide sequences and you want to explore, filter, and annotate
