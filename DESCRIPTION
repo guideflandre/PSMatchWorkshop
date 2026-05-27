@@ -25,6 +25,7 @@ Suggests:
     knitr,
     rmarkdown,
     pkgdown,
+    BiocStyle,
     utils,
     stats,
     igraph,
@@ -38,7 +39,10 @@ Suggests:
     MsCoreUtils,
     MsDataHub,
     mzR,
-    factoextra
+    factoextra,
+    xaringan,
+    xaringanExtra,
+    TargetDecoy
 URL: https://guideflandre.github.io/PSMatchWorkshop/
 BugReports: https://github.com/guideflandre/PSMatchWorkshop/issues/new/choose
 VignetteBuilder: knitr

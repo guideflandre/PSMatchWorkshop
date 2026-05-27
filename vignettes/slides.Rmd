@@ -5,7 +5,7 @@ author: "Guillaume Deflandre"
 date: "`r Sys.Date()`"
 output:
   xaringan::moon_reader:
-    css: [default, metropolis, metropolis-fonts, xaringan_tutorial_custom.css]
+    css: [default, metropolis, metropolis-fonts]
     lib_dir: libs
     nature:
       slideNumberFormat: "%current% / %total%"
@@ -13,6 +13,10 @@ output:
       highlightLines: true
       ratio: "16:9"
       countdown: 0
+vignette: >
+    %\VignetteIndexEntry{PSMatch Workshop Slides}
+    %\VignetteEngine{knitr::rmarkdown}
+    %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
