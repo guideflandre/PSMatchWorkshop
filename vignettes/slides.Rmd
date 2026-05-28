@@ -59,8 +59,9 @@ remotes::install_github("guideflandre/PSMatchWorkshop", build_vignettes = TRUE)
 ## From docker image
 
 ```{bash installImage, eval = FALSE}
-## Run docker image (~3min)
-docker run -p 8787:8787 -e PASSWORD=psmatch guillaumedeflandre/psmatchworkshop
+## Pull docker image (~3min)
+sudo docker pull guillaumedeflandre/pasmatchworkshop
+sudo docker run -p 8787:8787 -e PASSWORD=psmatch guillaumedeflandre/psmatchworkshop
 ```
 Then, open your browser and search: `localhost:8787`. The username is `rstudio`
 and the password is `psmatch`.
@@ -277,7 +278,7 @@ f <- MsDataHub::TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.20141210.m
 ```{r psm-load, eval = FALSE}
 psms <- PSM(
     x = psmBoekweg,
-    spectrum = "pkey", 
+    spectrum = "pkey",
     peptide = "peptide",
     protein = "protein",
     decoy = "label",
@@ -451,7 +452,9 @@ Values can be:
 - **Weighted**: sum of scores
 
 ```{r adj-build, eval = FALSE}
-psmsFiltered <- psms |> filterPsmDecoy() |> filterPsmRank()
+psmsFiltered <- psms |>
+    filterPsmDecoy() |>
+    filterPsmRank()
 adj <- makeAdjacencyMatrix(psmsFiltered, binary = TRUE) ## binary
 adj <- makeAdjacencyMatrix(psmsFiltered) ## weighted (sum of scores)
 adj <- makeAdjacencyMatrix(psmsFiltered, score = NA) ## counts
