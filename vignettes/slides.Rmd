@@ -59,8 +59,7 @@ remotes::install_github("guideflandre/PSMatchWorkshop", build_vignettes = TRUE)
 ## From docker image
 
 ```{bash installImage, eval = FALSE}
-## Pull docker image (~3min)
-sudo docker pull guillaumedeflandre/pasmatchworkshop
+## Run docker image (~3min)
 sudo docker run -p 8787:8787 -e PASSWORD=psmatch guillaumedeflandre/psmatchworkshop
 ```
 Then, open your browser and search: `localhost:8787`. The username is `rstudio`
